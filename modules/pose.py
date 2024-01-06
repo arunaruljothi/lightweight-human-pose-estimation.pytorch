@@ -27,7 +27,7 @@ class Pose:
         self.filters = [[OneEuroFilter(), OneEuroFilter()] for _ in range(Pose.num_kpts)]
 
     @staticmethod
-    def get_bbox(keypoints):
+    def get_bbox(keypoints, extra_points = None):
         found_keypoints = np.zeros((np.count_nonzero(keypoints[:, 0] != -1), 2), dtype=np.int32)
         found_kpt_id = 0
         for kpt_id in range(Pose.num_kpts):
@@ -35,6 +35,8 @@ class Pose:
                 continue
             found_keypoints[found_kpt_id] = keypoints[kpt_id]
             found_kpt_id += 1
+        if extra_points is not None:
+            found_keypoints = np.vstack([found_keypoints, extra_points]).astype(np.float32)
         bbox = cv2.boundingRect(found_keypoints)
         return bbox
 
@@ -44,7 +46,7 @@ class Pose:
             self.id = Pose.last_id + 1
             Pose.last_id += 1
 
-    def draw(self, img):
+    def draw(self, img, line_thickness: int = 2, circle_radius: int = 3):
         assert self.keypoints.shape == (Pose.num_kpts, 2)
 
         for part_id in range(len(BODY_PARTS_PAF_IDS) - 2):
@@ -52,14 +54,14 @@ class Pose:
             global_kpt_a_id = self.keypoints[kpt_a_id, 0]
             if global_kpt_a_id != -1:
                 x_a, y_a = self.keypoints[kpt_a_id]
-                cv2.circle(img, (int(x_a), int(y_a)), 3, Pose.color, -1)
+                cv2.circle(img, (int(x_a), int(y_a)), circle_radius, Pose.color, -1)
             kpt_b_id = BODY_PARTS_KPT_IDS[part_id][1]
             global_kpt_b_id = self.keypoints[kpt_b_id, 0]
             if global_kpt_b_id != -1:
                 x_b, y_b = self.keypoints[kpt_b_id]
-                cv2.circle(img, (int(x_b), int(y_b)), 3, Pose.color, -1)
+                cv2.circle(img, (int(x_b), int(y_b)), circle_radius, Pose.color, -1)
             if global_kpt_a_id != -1 and global_kpt_b_id != -1:
-                cv2.line(img, (int(x_a), int(y_a)), (int(x_b), int(y_b)), Pose.color, 2)
+                cv2.line(img, (int(x_a), int(y_a)), (int(x_b), int(y_b)), Pose.color, line_thickness)
 
 
 def get_similarity(a, b, threshold=0.5):
